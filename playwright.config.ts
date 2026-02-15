@@ -30,15 +30,22 @@ export default defineConfig({
 
   // Multiple reporters for better CI reporting
   reporter: process.env.CI 
-    ? [['html'], ['github']] 
-    : 'html',
+    ? [
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['json', { outputFile: 'test-results/results.json' }],
+        ['junit', { outputFile: 'test-results/results.xml' }],
+        ['github']
+      ] 
+    : [['html', { open: 'on-failure', host: 'localhost', port: 9323 }]],
 
   // Shared settings for all the projects below
   use: {
     // Collect trace when retrying the failed test
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    // video: 'retain-on-failure'
+    video: 'retain-on-failure',
+    // Base URL for tests
+    // baseURL: 'http://localhost:3000',
   },
 
   // Configure projects for major browsers
