@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { getEnvironmentConfig } from './e2e/config/environments';
 
 /**
  * Read environment variables from file.
@@ -12,6 +13,9 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 
+// Get environment configuration
+const envConfig = getEnvironmentConfig();
+
 export default defineConfig({
   // Look for test files in the "./e2e/tests" directory, relative to this configuration file.
   testDir: './e2e/tests',
@@ -23,7 +27,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
 
   // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? envConfig.retries : 0,
 
   // Parallel run configuration
   workers: process.env.CI ? 4 : undefined,
@@ -35,10 +39,20 @@ export default defineConfig({
 
   // Shared settings for all the projects below
   use: {
+    // Base URL from environment configuration
+    baseURL: envConfig.baseURL,
+    
+    // Timeout from environment configuration
+    actionTimeout: envConfig.timeout,
+    
     // Collect trace when retrying the failed test
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     // video: 'retain-on-failure'
+    
+    // Environment-specific settings
+    headless: envConfig.headless,
+    ...(envConfig.slowMo && { slowMo: envConfig.slowMo })
   },
 
   // Configure projects for major browsers

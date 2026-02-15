@@ -1,4 +1,6 @@
 import { Page, Locator, expect } from '@playwright/test';
+import { Logger, CustomAssertions } from '../utils';
+import { getEnvironmentConfig } from '../config';
 
 export abstract class BasePage {
   protected page: Page;
@@ -6,14 +8,18 @@ export abstract class BasePage {
 
   constructor(page: Page) {
     this.page = page;
-    this.baseUrl = 'https://the-internet.herokuapp.com';
+    const envConfig = getEnvironmentConfig();
+    this.baseUrl = envConfig.baseURL;
   }
 
   /**
    * Navigate to the page
    */
   async goto(path: string = '') {
-    await this.page.goto(`${this.baseUrl}${path}`);
+    const fullUrl = `${this.baseUrl}${path}`;
+    Logger.step(`Navigating to: ${fullUrl}`);
+    await this.page.goto(fullUrl);
+    await CustomAssertions.toBeFullyLoaded(this.page);
   }
 
   /**
@@ -21,6 +27,7 @@ export abstract class BasePage {
    */
   async waitForPageLoad() {
     await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**
@@ -47,14 +54,20 @@ export abstract class BasePage {
   /**
    * Fill input field
    */
-  async fillInput(locator: Locator, value: string) {
+  async fillInput(locator: Locator, value: string, fieldName?: string) {
+    const name = fieldName || 'input field';
+    Logger.step(`Filling ${name}`);
+    await locator.waitFor({ state: 'visible' });
     await locator.fill(value);
   }
 
   /**
    * Click element
    */
-  async clickElement(locator: Locator) {
+  async clickElement(locator: Locator, elementName?: string) {
+    const name = elementName || 'element';
+    Logger.step(`Clicking ${name}`);
+    await locator.waitFor({ state: 'visible' });
     await locator.click();
   }
 
@@ -76,8 +89,11 @@ export abstract class BasePage {
    * Navigate with authentication
    */
   async gotoWithAuth(path: string, username: string, password: string) {
-    const urlWithAuth = `https://${username}:${password}@the-internet.herokuapp.com${path}`;
+    const url = new URL(this.baseUrl);
+    const urlWithAuth = `${url.protocol}//${username}:${password}@${url.host}${path}`;
+    Logger.step(`Navigating with authentication to: ${path}`);
     await this.page.goto(urlWithAuth);
+    await this.waitForPageLoad();
   }
 
   /**
@@ -99,23 +115,37 @@ export abstract class BasePage {
   }
 
   /**
-   * Get error message if any
+   * Get error message
    */
   async getErrorMessage(): Promise<string | null> {
-    const errorElement = this.page.locator('.flash.error, .flash-error, [role="alert"]');
-    if (await errorElement.isVisible()) {
-      return await errorElement.textContent();
+    const errorSelectors = [
+      '.flash.error', '.flash-error', '[role="alert"]',
+      '.error-message', '.alert-error'
+    ];
+    
+    for (const selector of errorSelectors) {
+      const errorElement = this.page.locator(selector);
+      if (await errorElement.isVisible()) {
+        return await errorElement.textContent();
+      }
     }
     return null;
   }
 
   /**
-   * Get success message if any
+   * Get success message
    */
   async getSuccessMessage(): Promise<string | null> {
-    const successElement = this.page.locator('.flash.success, .flash-success, [role="status"]');
-    if (await successElement.isVisible()) {
-      return await successElement.textContent();
+    const successSelectors = [
+      '.flash.success', '.flash-success', '[role="status"]',
+      '.success-message', '.alert-success'
+    ];
+    
+    for (const selector of successSelectors) {
+      const successElement = this.page.locator(selector);
+      if (await successElement.isVisible()) {
+        return await successElement.textContent();
+      }
     }
     return null;
   }
@@ -124,15 +154,49 @@ export abstract class BasePage {
    * Verify page heading
    */
   async verifyPageHeading(expectedHeading: string) {
+    Logger.step(`Verifying page heading: ${expectedHeading}`);
     const heading = this.page.getByRole('heading', { name: expectedHeading });
     await expect(heading).toBeVisible();
+    await CustomAssertions.toBeAccessible(heading);
   }
 
   /**
    * Verify flash message
    */
-  async verifyFlashMessage(message: string) {
+  async verifyFlashMessage(message: string, type: 'success' | 'error' = 'success') {
     const flashMessage = this.page.getByText(message);
     await expect(flashMessage).toBeVisible();
+    
+    if (type === 'success') {
+      await CustomAssertions.toHaveSuccessMessage(flashMessage);
+    } else {
+      await CustomAssertions.toHaveErrorMessage(flashMessage);
+    }
+  }
+
+  /**
+   * Wait for and verify page URL pattern
+   */
+  async verifyUrlPattern(pattern: string | RegExp, timeout: number = 5000) {
+    await this.page.waitForFunction(
+      (pattern) => {
+        if (typeof pattern === 'string') {
+          return window.location.href.includes(pattern);
+        }
+        return pattern.test(window.location.href);
+      },
+      pattern,
+      { timeout }
+    );
+    await CustomAssertions.toHaveUrlPattern(this.page, pattern);
+  }
+
+  /**
+   * Take screenshot with context
+   */
+  async takeScreenshot(name: string, options?: { fullPage?: boolean }) {
+    return await Logger.screenshot(this.page, name, {
+      fullPage: options?.fullPage ?? false
+    });
   }
 }

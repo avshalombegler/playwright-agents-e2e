@@ -1,26 +1,51 @@
-# Playwright
+# Dependencies
 node_modules/
+jspm_packages/
+
+# Playwright
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
 
-# Screenshots and test artifacts
+# Test artifacts and outputs
 screenshots/
+videos/ 
+traces/
+logs/
 test-screenshots/
 downloads/
+allure-results/
+allure-report/
 
 # MCP related
 /.playwright-mcp/
 
+# Build outputs and compiled files
+dist/
+build/
+out/
+*.tsbuildinfo
+*.js.map
+lib/
+
+# TypeScript
+*.tsbuildinfo
+
 # IDE and editor files
-.vscode/settings.json
-.vscode/launch.json
+.vscode/
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
 .idea/
 *.swp
 *.swo
 *~
+.sublime-project
+.sublime-workspace
+*.code-workspace
 
 # OS generated files
 .DS_Store
@@ -30,6 +55,18 @@ downloads/
 .Trashes
 ehthumbs.db
 Thumbs.db
+Desktop.ini
+
+# Package manager files
+package-lock.json*
+yarn.lock
+pnpm-lock.yaml
+.pnpm-debug.log*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
 # Logs
 *.log
@@ -37,6 +74,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+.pnpm-debug.log*
 
 # Environment variables
 .env
@@ -44,12 +82,50 @@ lerna-debug.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
 
 # Temporary files
 *.tmp
 *.temp
 /tmp/
+.cache/
 
 # Coverage reports
 coverage/
 .nyc_output/
+*.lcov
+
+# ESLint cache
+.eslintcache
+
+# Stylelint cache
+.stylelintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Next.js build output
+.next
+out/
+
+# Nuxt.js build / generate output
+.nuxt
+dist/
+
+# Storybook build outputs
+.out
+.storybook-out
+storybook-static
+
+# Temporary folders
+tmp/
+temp/

@@ -1,58 +1,69 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { Logger, CustomAssertions } from '../utils';
+import { TestDataManager } from '../data';
 
-export class BasicAuthPage extends BasePage {
-  // Locators
-  private basicAuthHeading: Locator;
+/**
+ * Unified HTTP Authentication Page (Basic and Digest Auth)
+ * Consolidates BasicAuthPage and DigestAuthPage to eliminate duplication
+ */
+export class HttpAuthPage extends BasePage {
+  private authHeading: Locator;
   private successMessage: Locator;
+  private authType: 'basic' | 'digest';
+  private authPath: string;
 
-  constructor(page: Page) {
+  constructor(page: Page, authType: 'basic' | 'digest' = 'basic') {
     super(page);
-    this.basicAuthHeading = this.page.getByRole('heading', { name: 'Basic Auth' });
+    this.authType = authType;
+    this.authPath = authType === 'basic' ? '/basic_auth' : '/digest_auth';
+    const headingName = authType === 'basic' ? 'Basic Auth' : 'Digest Auth';
+    this.authHeading = this.page.getByRole('heading', { name: headingName });
     this.successMessage = this.page.getByText('Congratulations! You must have the proper credentials.');
   }
 
   /**
-   * Navigate to basic auth page with credentials
+   * Navigate to auth page with credentials
    */
-  async navigateToBasicAuthWithCredentials(username: string = 'admin', password: string = 'admin') {
-    await this.gotoWithAuth('/basic_auth', username, password);
+  async navigateWithCredentials(username: string = 'admin', password: string = 'admin') {
+    Logger.step(`Navigating to ${this.authType} auth with credentials: ${username}`);
+    await this.gotoWithAuth(this.authPath, username, password);
   }
 
   /**
-   * Navigate to basic auth page without credentials
-   */
-  async navigateToBasicAuth() {
-    await this.goto('/basic_auth');
-  }
-
-  /**
-   * Navigate with valid credentials
+   * Navigate with valid credentials using TestDataManager
    */
   async navigateWithValidCredentials() {
-    await this.navigateToBasicAuthWithCredentials('admin', 'admin');
+    const credentials = TestDataManager.getAuthCredentials(this.authType).valid;
+    await this.navigateWithCredentials(credentials.username, credentials.password);
   }
 
   /**
-   * Navigate with invalid credentials
+   * Navigate with invalid credentials using TestDataManager
    */
   async navigateWithInvalidCredentials() {
-    await this.navigateToBasicAuthWithCredentials('invalid', 'invalid');
+    const credentials = TestDataManager.getAuthCredentials(this.authType).invalid;
+    await this.navigateWithCredentials(credentials.username, credentials.password);
   }
 
   /**
-   * Verify successful basic authentication
+   * Verify successful authentication
    */
-  async verifySuccessfulBasicAuth() {
+  async verifySuccessfulAuth() {
+    Logger.step(`Verifying successful ${this.authType} authentication`);
     await expect(this.successMessage).toBeVisible();
-    await expect(this.basicAuthHeading).toBeVisible();
+    await expect(this.authHeading).toBeVisible();
+    await CustomAssertions.toHaveSuccessMessage(this.successMessage);
+    await CustomAssertions.toBeAccessible(this.authHeading);
+    await this.verifyUrlPattern(this.authPath);
   }
 
   /**
-   * Verify basic auth page heading
+   * Verify auth page heading
    */
-  async verifyBasicAuthHeading() {
-    await expect(this.basicAuthHeading).toBeVisible();
+  async verifyAuthHeading() {
+    await expect(this.authHeading).toBeVisible();
+    await CustomAssertions.toBeAccessible(this.authHeading);
   }
 
   /**
@@ -60,6 +71,7 @@ export class BasicAuthPage extends BasePage {
    */
   async verifySuccessMessage() {
     await expect(this.successMessage).toBeVisible();
+    await CustomAssertions.toHaveSuccessMessage(this.successMessage);
   }
 
   /**
@@ -67,5 +79,21 @@ export class BasicAuthPage extends BasePage {
    */
   async isAuthenticationSuccessful(): Promise<boolean> {
     return await this.isElementVisible(this.successMessage);
+  }
+}
+
+// Backward compatibility aliases
+export class BasicAuthPage extends HttpAuthPage {
+  constructor(page: Page) {
+    super(page, 'basic');
+  }
+  async navigateToBasicAuthWithCredentials(username: string = 'admin', password: string = 'admin') {
+    return this.navigateWithCredentials(username, password);
+  }
+  async verifySuccessfulBasicAuth() {
+    return this.verifySuccessfulAuth();
+  }
+  async verifyBasicAuthHeading() {
+    return this.verifyAuthHeading();
   }
 }
