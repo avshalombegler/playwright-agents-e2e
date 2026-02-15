@@ -13,7 +13,9 @@ export class PasswordRecoveryPage extends BasePage {
     this.emailInput = this.page.getByRole('textbox', { name: 'E-mail' });
     this.retrievePasswordButton = this.page.getByRole('button', { name: 'Retrieve password' });
     this.forgotPasswordHeading = this.page.getByRole('heading', { name: 'Forgot Password' });
-    this.internalServerErrorHeading = this.page.getByRole('heading', { name: 'Internal Server Error' });
+    this.internalServerErrorHeading = this.page.getByRole('heading', {
+      name: 'Internal Server Error',
+    });
   }
 
   /**

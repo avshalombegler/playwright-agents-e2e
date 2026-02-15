@@ -8,11 +8,11 @@ test.describe('Form Authentication', () => {
       await loginPage.loginWithValidCredentials();
       await securePage.verifySecureAreaDisplayed();
     });
-    
+
     await test.step('Perform logout', async () => {
       await securePage.logout();
     });
-    
+
     await test.step('Verify logout completed successfully', async () => {
       await loginPage.verifyLogoutMessage();
       await loginPage.verifyLoginPageElements();

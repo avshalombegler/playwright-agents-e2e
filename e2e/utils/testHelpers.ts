@@ -7,38 +7,38 @@ export const TestData = {
   // Valid credentials
   VALID_CREDENTIALS: {
     username: 'tomsmith',
-    password: 'SuperSecretPassword!'
+    password: 'SuperSecretPassword!',
   },
 
   // Invalid credentials for testing
   INVALID_CREDENTIALS: {
     username: 'invalid_user',
-    password: 'invalid_password'
+    password: 'invalid_password',
   },
 
   // Basic/Digest auth credentials
   AUTH_CREDENTIALS: {
     valid: { username: 'admin', password: 'admin' },
-    invalid: { username: 'invalid', password: 'invalid' }
+    invalid: { username: 'invalid', password: 'invalid' },
   },
 
   // Test emails
   EMAILS: {
     valid: 'test@example.com',
-    invalid: 'invalid-email'
+    invalid: 'invalid-email',
   },
 
   // URLs
   BASE_URL: 'https://the-internet.herokuapp.com',
-  
+
   PATHS: {
     login: '/login',
     secure: '/secure',
     forgotPassword: '/forgot_password',
     basicAuth: '/basic_auth',
     digestAuth: '/digest_auth',
-    downloadSecure: '/download_secure'
-  }
+    downloadSecure: '/download_secure',
+  },
 };
 
 /**
@@ -62,9 +62,11 @@ export class TestHelpers {
    * Clear all form fields on the page
    */
   async clearAllFormFields(): Promise<void> {
-    const inputs = this.page.locator('input[type="text"], input[type="password"], input[type="email"]');
+    const inputs = this.page.locator(
+      'input[type="text"], input[type="password"], input[type="email"]'
+    );
     const count = await inputs.count();
-    
+
     for (let i = 0; i < count; i++) {
       await inputs.nth(i).clear();
     }
@@ -98,7 +100,7 @@ export class TestHelpers {
     return {
       username: `testuser_${timestamp}`,
       email: `test_${timestamp}@example.com`,
-      timestamp: this.getCurrentTimestamp()
+      timestamp: this.getCurrentTimestamp(),
     };
   }
 
@@ -159,10 +161,10 @@ export class TestHelpers {
   async getBrowserInfo(): Promise<{ name: string; version: string }> {
     const browserName = this.page.context().browser()?.browserType().name() || 'unknown';
     const browserVersion = this.page.context().browser()?.version() || 'unknown';
-    
+
     return {
       name: browserName,
-      version: browserVersion
+      version: browserVersion,
     };
   }
 }

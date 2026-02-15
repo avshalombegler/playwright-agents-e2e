@@ -1,5 +1,5 @@
+import { SecurePage } from '../pages';
 import { test as pageTest } from './pageFixtures';
-import { LoginPage, SecurePage } from '../pages';
 
 type AuthFixtures = {
   loggedInSecurePage: SecurePage;
@@ -11,12 +11,12 @@ export const authTest = pageTest.extend<AuthFixtures>({
     // Navigate to login and authenticate
     await loginPage.navigateToLogin();
     await loginPage.loginWithValidCredentials();
-    
+
     // Verify authentication was successful
     await securePage.verifySecureAreaDisplayed();
-    
+
     await use(securePage);
-  }
+  },
 });
 
 export { expect } from '@playwright/test';

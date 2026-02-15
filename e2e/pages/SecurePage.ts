@@ -9,7 +9,9 @@ export class SecurePage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.secureAreaHeading = this.page.getByRole('heading', { level: 2 }).filter({ hasText: 'Secure Area' });
+    this.secureAreaHeading = this.page
+      .getByRole('heading', { level: 2 })
+      .filter({ hasText: 'Secure Area' });
     this.logoutLink = this.page.getByRole('link', { name: 'Logout' });
     this.successMessage = this.page.getByText('You logged into a secure area!');
   }

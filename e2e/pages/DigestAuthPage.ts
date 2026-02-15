@@ -9,13 +9,18 @@ export class DigestAuthPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.digestAuthHeading = this.page.getByRole('heading', { name: 'Digest Auth' });
-    this.successMessage = this.page.getByText('Congratulations! You must have the proper credentials.');
+    this.successMessage = this.page.getByText(
+      'Congratulations! You must have the proper credentials.'
+    );
   }
 
   /**
    * Navigate to digest auth page with credentials
    */
-  async navigateToDigestAuthWithCredentials(username: string = 'admin', password: string = 'admin') {
+  async navigateToDigestAuthWithCredentials(
+    username: string = 'admin',
+    password: string = 'admin'
+  ) {
     await this.gotoWithAuth('/digest_auth', username, password);
   }
 

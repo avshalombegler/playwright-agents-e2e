@@ -3,13 +3,28 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "lint": "eslint e2e/ --ext .ts,.js",
+    "lint:fix": "eslint e2e/ --ext .ts,.js --fix",
+    "format": "prettier --write \"e2e/**/*.{ts,js}\"",
+    "format:check": "prettier --check \"e2e/**/*.{ts,js}\"",
+    "type-check": "tsc --noEmit",
+    "check": "npm run lint && npm run format:check && npm run type-check",
+    "fix": "npm run lint:fix && npm run format && npm run type-check",
+    "pre-commit": "npm run fix",
+    "ci": "npm run check && npm run test"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "devDependencies": {
     "@playwright/test": "^1.58.1",
-    "@types/node": "^25.2.0"
+    "@types/node": "^25.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.1"
   }
 }

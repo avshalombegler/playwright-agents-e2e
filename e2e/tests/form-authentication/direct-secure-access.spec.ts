@@ -6,7 +6,7 @@ test.describe('Form Authentication', () => {
       // Attempt to bypass authentication by direct URL access
       await securePage.navigateToSecureArea();
     });
-    
+
     await test.step('Verify unauthorized access is blocked', async () => {
       await loginPage.verifyUnauthorizedAccessMessage();
       await loginPage.verifyLoginPageDisplayed();

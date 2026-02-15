@@ -8,7 +8,9 @@ export class DownloadPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
-    this.secureDownloaderHeading = this.page.getByRole('heading', { name: 'Secure File Downloader' });
+    this.secureDownloaderHeading = this.page.getByRole('heading', {
+      name: 'Secure File Downloader',
+    });
     this.testPdfLink = this.page.getByRole('link', { name: 'test-file.txt' });
   }
 

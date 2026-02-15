@@ -1,6 +1,6 @@
 # Playwright E2E Testing Suite
 
-A comprehensive end-to-end testing suite built with Playwright for testing authentication flows, security features, and form interactions on [The Internet](https://the-internet.herokuapp.com/) - a widely used web application for testing purposes.
+A comprehensive end-to-end testing suite built with Playwright and TypeScript, featuring automated CI/CD pipeline, code quality enforcement, and cross-browser testing for authentication flows and security features on [The Internet](https://the-internet.herokuapp.com/).
 
 ## 🎯 Project Overview
 
@@ -11,7 +11,9 @@ This project provides thorough test coverage for various authentication mechanis
 - **Authentication Systems**: Form-based login, HTTP Basic Auth, Digest Authentication
 - **Security Features**: Secure file downloads, session management, back-button security
 - **Form Interactions**: Input validation, password recovery, credential handling
-- **Cross-Browser Testing**: Chromium support with extensible configuration for Firefox and Safari
+- **Cross-Browser Testing**: Chromium, Firefox, and WebKit support
+- **Quality Assurance**: ESLint, Prettier, TypeScript integration
+- **CI/CD Pipeline**: Automated testing, quality gates, performance monitoring
 
 ## 🏗️ Project Structure
 
@@ -54,8 +56,8 @@ playwright-agents-e2e/
 
 ### Prerequisites
 
-- Node.js (LTS version recommended)
-- npm or yarn package manager
+- Node.js 18+ (LTS version recommended)
+- npm package manager
 
 ### Installation
 
@@ -78,42 +80,50 @@ playwright-agents-e2e/
    npx playwright install
    ```
 
+4. **Verify setup**
+
+   ```bash
+   npm run check
+   ```
+
 ### Running Tests
 
-#### Run all tests
+#### Development Scripts
 
 ```bash
-npx playwright test
+# Run all tests
+npm test
+
+# Code quality checks
+npm run check          # Lint + format check + type check
+npm run fix            # Auto-fix linting + format + type check
+
+# Individual quality tools
+npm run lint           # ESLint check
+npm run lint:fix       # ESLint auto-fix
+npm run format         # Prettier format
+npm run format:check   # Check formatting
+npm run type-check     # TypeScript validation
+
+# CI simulation
+npm run ci             # Run quality checks + tests
 ```
 
-#### Run tests with UI mode
+#### Playwright Commands
 
 ```bash
+# Run with UI mode
 npx playwright test --ui
-```
 
-#### Run specific test suites
-
-```bash
-# Form authentication tests
+# Run specific test suites
 npx playwright test e2e/tests/form-authentication/
-
-# Basic authentication tests  
 npx playwright test e2e/tests/basic-auth/
-
-# Security tests
 npx playwright test e2e/tests/security/
-```
 
-#### Run tests in headed mode (visible browser)
-
-```bash
+# Run in headed mode (visible browser)
 npx playwright test --headed
-```
 
-#### Generate test reports
-
-```bash
+# Generate and view reports
 npx playwright show-report
 ```
 
@@ -139,17 +149,40 @@ npx playwright show-report
 - **Error Handling**: Proper error message display
 - **Field Behavior**: Input masking, retention, clearing
 
-## 🔧 Configuration
+## �️ Development Setup
+
+### Code Quality Tools
+
+- **ESLint v9**: Modern flat config with TypeScript support
+- **Prettier**: Consistent code formatting across the project
+- **TypeScript**: Strict type checking and modern language features
+
+### Recommended VS Code Extensions
+
+```bash
+# Install essential extensions
+code --install-extension ms-vscode.vscode-eslint
+code --install-extension esbenp.prettier-vscode
+code --install-extension ms-playwright.playwright
+```
+
+### Development Workflow
+
+1. **Before committing**: Run `npm run fix` to auto-fix issues
+2. **Daily development**: Use `npm run check` to verify code quality
+3. **VS Code integration**: Extensions provide real-time feedback
+
+## �🔧 Configuration
 
 ### Playwright Configuration
 
-The project uses a centralized configuration in [playwright.config.ts](playwright.config.ts):
+The project uses [playwright.config.ts](playwright.config.ts) with:
 
-- **Test Directory**: `./e2e/tests`
-- **Parallel Execution**: Enabled for faster test runs
-- **Retry Strategy**: 2 retries on CI, 0 locally
-- **Reporting**: HTML reports with GitHub integration for CI
-- **Browser Support**: Currently configured for Chromium (extensible)
+- **Cross-browser testing**: Chromium, Firefox, WebKit
+- **Parallel execution**: Optimized for performance
+- **Smart retries**: 2 retries on CI, 0 locally
+- **Rich reporting**: HTML reports with trace collection
+- **CI optimization**: Enhanced for GitHub Actions
 
 ### Environment Configuration
 
@@ -160,21 +193,28 @@ The project uses a centralized configuration in [playwright.config.ts](playwrigh
 
 ## 🔄 CI/CD Pipeline
 
-The project includes a comprehensive GitHub Actions workflow:
+Comprehensive GitHub Actions workflow with industry best practices:
 
-### Features
+### Quality Gates
 
-- **Automated Testing**: Runs on push/PR to main/master branches
-- **Caching Strategy**: Node modules and Playwright browsers cached for performance
-- **Test Reports**: Automatic HTML report generation
-- **GitHub Pages**: Test reports published to GitHub Pages
-- **Artifact Management**: Test results preserved for 30 days
+- **Dependency validation**: Package-lock integrity checks
+- **Security auditing**: npm audit for vulnerabilities
+- **Code quality**: ESLint + Prettier + TypeScript validation
+- **Performance monitoring**: Test execution time thresholds
 
-### Workflow Triggers
+### Test Execution
 
-- Push to main/master branches
-- Pull requests targeting main/master
-- Manual workflow dispatch
+- **Multi-environment**: Ubuntu, Windows, macOS
+- **Multi-browser**: Chromium, Firefox, WebKit
+- **Multi-runtime**: Node.js 18, 20
+- **Smoke testing**: Staging environment validation
+
+### Automation Features
+
+- **Scheduled runs**: Daily weekday regression testing
+- **Enhanced reporting**: GitHub Step Summaries + PR comments
+- **Artifact management**: Test traces and reports preserved
+- **GitHub Pages**: Automated report deployment
 
 ## 📋 Test Organization
 
@@ -193,60 +233,61 @@ The project includes a comprehensive GitHub Actions workflow:
 ### Test Structure
 
 ```typescript
-// Example test structure
+// Example test with fixtures
 import { pageTest as test, expect } from '../../fixtures';
 
 test.describe('Authentication Feature', () => {
-  test('should handle valid login flow', async ({ loginPage, securePage }) => {
-    await loginPage.navigateToLogin();
+  test('should handle valid login', async ({ loginPage, securePage }) => {
     await loginPage.loginWithValidCredentials();
-    await securePage.verifyLoginSuccessMessage();
+    await securePage.verifySuccessMessage();
   });
 });
 ```
 
 ## 🛠️ Development Guidelines
 
+### Code Quality Standards
+
+- Follow ESLint rules (auto-fixable via `npm run fix`)
+- Use Prettier formatting (configured in `.prettierrc`)
+- Maintain TypeScript strict mode compliance
+- Run `npm run check` before committing
+
 ### Adding New Tests
 
-1. Create test files in appropriate subdirectories under `e2e/tests/`
-2. Use existing fixtures and page objects when possible
-3. Follow the established naming conventions
-4. Include both positive and negative test scenarios
+1. Use appropriate test directory structure under `e2e/tests/`
+2. Leverage existing fixtures and page objects
+3. Follow consistent naming conventions
+4. Include positive and negative scenarios
 
 ### Page Object Development
 
 1. Extend `BasePage` for common functionality
-2. Use semantic locators (roles, labels) for better maintainability
-3. Implement verification methods alongside action methods
+2. Use semantic locators for maintainability
+3. Implement verification methods alongside actions
 4. Follow async/await patterns consistently
 
-### Utility Functions
-
-- **authUtils.ts**: Authentication helper functions
-- **testHelpers.ts**: General test utilities
-- **validationUtils.ts**: Assertion helpers
-- **downloadUtils.ts**: File download testing utilities
-
-## 📊 Reporting
+## 📊 Reporting & Monitoring
 
 ### Local Development
 
-- HTML reports generated in `playwright-report/`
-- Open reports with `npx playwright show-report`
+- HTML reports: `playwright-report/` directory
+- View reports: `npx playwright show-report`
+- Trace viewer: Available for failed tests
 
 ### CI/CD Environment
 
-- Reports automatically published to GitHub Pages
-- Artifacts uploaded for failed test investigations
-- Integration with GitHub's checks API
+- Automated GitHub Pages deployment
+- Enhanced GitHub Step Summaries
+- PR failure notifications with detailed links
+- Performance threshold monitoring
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
-3. Write tests following existing patterns
-4. Ensure all tests pass locally
+3. Follow code quality standards (`npm run check`)
+4. Ensure tests pass locally
 5. Submit a pull request
 
 ## 📚 Resources

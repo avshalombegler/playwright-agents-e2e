@@ -5,7 +5,7 @@ test.describe('Digest Authentication', () => {
     await test.step('Navigate with valid digest auth credentials', async () => {
       await digestAuthPage.navigateWithValidCredentials();
     });
-    
+
     await test.step('Verify digest authentication success', async () => {
       await digestAuthPage.verifySuccessMessage();
       await digestAuthPage.verifyDigestAuthHeading();

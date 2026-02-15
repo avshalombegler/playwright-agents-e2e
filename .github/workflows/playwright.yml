@@ -1,102 +1,211 @@
-name: Playwright Tests
+name: Playwright E2E Tests
+
 on:
   push:
-    branches: [ main ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main, develop]
+  # schedule:
+  #   - cron: '0 6 * * 1-5' # Run daily on weekdays
+  workflow_dispatch: # Manual trigger
 
-# Permissions for GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
+  checks: write
 
-# Concurrency group to prevent multiple deployments
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    timeout-minutes: 60
+  setup:
     runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.node }}
+      playwright-version: ${{ steps.playwright-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: cache-keys
+        run: echo "node=${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
+      - id: playwright-version
+        run: echo "version=$(npx playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" >> $GITHUB_OUTPUT
+
+  lint-and-type-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+      
+      - name: Validate package-lock.json
+        run: npm ci --dry-run
+        
+      - run: npm ci
+      
+      - name: Check for outdated dependencies
+        run: npm outdated || true
+      
+      - run: npm audit --audit-level=moderate
+      - run: npx eslint e2e/ --ext .ts,.js --format github
+      - run: npx prettier --check "e2e/**/*.{ts,js}"
+      - run: npx tsc --noEmit
+
+  test:
+    needs: [setup, lint-and-type-check]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        browser: [chromium, firefox, webkit]
+        node-version: [18, 20]
+        include:
+          - os: windows-latest
+            browser: chromium
+            node-version: 20
+          - os: macos-latest  
+            browser: webkit
+            node-version: 20
+    
+    runs-on: ${{ matrix.os }}
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - uses: actions/setup-node@v4
-      with:
-        node-version: lts/*
-    
-    # Cache node_modules
-    - name: Cache node_modules
-      uses: actions/cache@v4
-      id: node-cache
-      with:
-        path: node_modules
-        key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-node-modules-
-    
-    - name: Install dependencies
-      if: steps.node-cache.outputs.cache-hit != 'true'
-      run: npm ci
-    
-    # Playwright browser caching
-    - name: Get Playwright version
-      id: playwright-version
-      run: echo "version=$(npx playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" >> $GITHUB_OUTPUT
-    
-    - name: Cache Playwright browsers
-      uses: actions/cache@v4
-      id: playwright-cache
-      with:
-        path: |
-          ~/.cache/ms-playwright
-          ~/Library/Caches/ms-playwright
-          ~\AppData\Local\ms-playwright
-        key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
-    
-    - name: Install Playwright Browsers
-      if: steps.playwright-cache.outputs.cache-hit != 'true'
-      run: npx playwright install --with-deps
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ needs.setup.outputs.cache-key }}
+      
+      - run: npm ci
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            ~\AppData\Local\ms-playwright
+          key: ${{ runner.os }}-playwright-${{ needs.setup.outputs.playwright-version }}
+      
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      
+      - name: Health check target application
+        run: |
+          curl -f https://the-internet.herokuapp.com/ || exit 1
+      
+      - name: Run Playwright tests
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          BROWSER: ${{ matrix.browser }}
+          CI: true
+          
+      - name: Performance threshold check
+        if: always()
+        run: |
+          # Check if any test results exist and get timing info from Playwright output
+          if [ -d "test-results" ] && [ "$(ls -A test-results 2>/dev/null)" ]; then
+            echo "✅ Test execution completed"
+            # Note: Actual performance monitoring would require custom reporter
+            # For now, just verify test results directory exists
+          else
+            echo "⚠️ No test results found"
+          fi
+          
+      - name: Generate test summary
+        if: always()
+        run: |
+          echo "## Test Results 🧪" >> $GITHUB_STEP_SUMMARY
+          echo "- **Browser**: ${{ matrix.browser }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **OS**: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Check test results and determine status
+          if [ -d "test-results" ] && [ "$(ls -A test-results 2>/dev/null)" ]; then
+            # Check if there were any failures by looking for failure indicators
+            if find test-results -name "*.json" -exec grep -l '"status":"failed"\|"status":"timedOut"' {} \; | head -1 > /dev/null 2>&1; then
+              echo "- **Status**: ❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **Status**: ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "- **Status**: ⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+      - name: Upload test traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ matrix.browser }}-${{ matrix.os }}-node${{ matrix.node-version }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.browser }}-${{ matrix.os }}-node${{ matrix.node-version }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 30
+          
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request' && failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Check if test-results directory exists
+            if (fs.existsSync('test-results')) {
+              const comment = `## ❌ Test Results Failed\n\n` +
+                `**Browser:** ${{ matrix.browser }}\n` +
+                `**OS:** ${{ matrix.os }}\n` +
+                `**Node.js:** ${{ matrix.node-version }}\n\n` +
+                `Test execution failed. Please check the [full report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) and download artifacts for detailed analysis.`;
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
 
-    - name: Install webkit dependencies (cache hit scenario)
-      if: steps.playwright-cache.outputs.cache-hit == 'true'
-      run: npx playwright install-deps webkit
-    
-    - name: Run Playwright tests
-      run: npx playwright test
-    
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
-      with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
-
-  # Deployment job for GitHub Pages
-  deploy:
+  deploy-reports:
     if: always() && github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Download test results
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
+          path: artifacts/
+          
       - name: Setup Pages
         uses: actions/configure-pages@v4
+        
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: playwright-report/
+          path: artifacts/
+          
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

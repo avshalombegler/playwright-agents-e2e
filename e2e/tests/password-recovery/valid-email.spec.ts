@@ -6,11 +6,11 @@ test.describe('Password Recovery', () => {
       await passwordRecoveryPage.navigateToForgotPassword();
       await passwordRecoveryPage.verifyForgotPasswordPageElements();
     });
-    
+
     await test.step('Submit password recovery request', async () => {
       await passwordRecoveryPage.submitWithValidEmail();
     });
-    
+
     await test.step('Verify server response', async () => {
       // Test server always returns 500 error for password recovery
       await passwordRecoveryPage.verifyInternalServerError();

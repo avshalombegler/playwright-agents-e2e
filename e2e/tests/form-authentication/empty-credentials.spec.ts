@@ -6,11 +6,11 @@ test.describe('Form Authentication', () => {
       await loginPage.navigateToLogin();
       await loginPage.verifyLoginPageElements();
     });
-    
+
     await test.step('Submit login form with empty credentials', async () => {
       await loginPage.clickLogin();
     });
-    
+
     await test.step('Verify login failure with empty credentials', async () => {
       await loginPage.verifyInvalidCredentialsError();
       await loginPage.verifyLoginPageElements();

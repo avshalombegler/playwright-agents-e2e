@@ -9,7 +9,9 @@ export class BasicAuthPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.basicAuthHeading = this.page.getByRole('heading', { name: 'Basic Auth' });
-    this.successMessage = this.page.getByText('Congratulations! You must have the proper credentials.');
+    this.successMessage = this.page.getByText(
+      'Congratulations! You must have the proper credentials.'
+    );
   }
 
   /**

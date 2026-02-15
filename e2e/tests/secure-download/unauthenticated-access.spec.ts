@@ -5,7 +5,7 @@ test.describe('Secure File Download', () => {
     await test.step('Navigate to secure download page without authentication', async () => {
       await downloadPage.navigateToSecureDownload();
     });
-    
+
     await test.step('Verify unauthorized access message', async () => {
       await expect(page.getByText('Not authorized')).toBeVisible();
     });
