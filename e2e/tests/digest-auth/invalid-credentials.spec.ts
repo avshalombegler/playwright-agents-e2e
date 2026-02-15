@@ -2,10 +2,18 @@ import { pageTest as test, expect } from '../../fixtures';
 
 test.describe('Digest Authentication', () => {
   test('Invalid Digest Auth Credentials', async ({ digestAuthPage, page }) => {
-    // Firefox throws navigation error for invalid digest auth credentials in URL
-    // Instead of a 401 response, we expect a network error
+    // Track response to check for 401 status (Chromium behavior)
+    let response;
     let navigationError = false;
     
+    // Listen for response event to capture the status
+    page.on('response', (resp) => {
+      if (resp.url().includes('/digest_auth')) {
+        response = resp;
+      }
+    });
+
+    // Try navigation - Firefox throws error, Chromium returns 401
     try {
       await digestAuthPage.navigateWithInvalidCredentials();
     } catch (error) {
@@ -20,7 +28,16 @@ test.describe('Digest Authentication', () => {
       }
     }
 
-    // For Firefox with digest auth, invalid credentials cause navigation error
-    expect(navigationError).toBe(true);
+    // Verify behavior based on browser:
+    // Firefox: Navigation error should be thrown
+    // Chromium: Should get 401 response
+    if (navigationError) {
+      // Firefox behavior - navigation error indicates auth failure
+      expect(navigationError).toBe(true);
+    } else {
+      // Chromium behavior - check for 401 response
+      expect(response).toBeDefined();
+      expect(response!.status()).toBe(401);
+    }
   });
 });
