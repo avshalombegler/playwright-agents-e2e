@@ -41,12 +41,12 @@ export default defineConfig({
   // Shared settings for all the projects below
   use: {
     // Collect trace when retrying the failed test
-    // trace: 'retain-on-failure',
-    // screenshot: 'only-on-failure',
-    // video: 'retain-on-failure',
-    trace: 'on',
-    screenshot: 'on',
-    video: 'on',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    // trace: 'on',
+    // screenshot: 'on',
+    // video: 'on',
   },
 
   // Configure projects for major browsers
