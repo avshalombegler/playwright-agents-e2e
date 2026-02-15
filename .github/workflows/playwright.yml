@@ -62,6 +62,10 @@ jobs:
     - name: Install Playwright Browsers
       if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps
+
+    - name: Install webkit dependencies (cache hit scenario)
+      if: steps.playwright-cache.outputs.cache-hit == 'true'
+      run: npx playwright install-deps webkit
     
     - name: Run Playwright tests
       run: npx playwright test
