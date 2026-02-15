@@ -41,17 +41,17 @@ jobs:
         with:
           node-version: lts/*
           cache: 'npm'
-      
+
       - name: Validate package-lock.json
         run: npm ci --dry-run
-        
+
       - run: npm ci
-      
+
       - name: Check for outdated dependencies
         run: npm outdated || true
-      
+
       - run: npm audit --audit-level=moderate
-      - run: npx eslint e2e/ --ext .ts,.js --format github
+      - run: npx eslint e2e/ --ext .ts,.js
       - run: npx prettier --check "e2e/**/*.{ts,js}"
       - run: npx tsc --noEmit
 
@@ -67,27 +67,27 @@ jobs:
           - os: windows-latest
             browser: chromium
             node-version: 20
-          - os: macos-latest  
+          - os: macos-latest
             browser: webkit
             node-version: 20
-    
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      
+
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
           path: node_modules
           key: ${{ needs.setup.outputs.cache-key }}
-      
+
       - run: npm ci
-      
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
@@ -96,19 +96,19 @@ jobs:
             ~/Library/Caches/ms-playwright
             ~\AppData\Local\ms-playwright
           key: ${{ runner.os }}-playwright-${{ needs.setup.outputs.playwright-version }}
-      
+
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      
+
       - name: Health check target application
         run: |
           curl -f https://the-internet.herokuapp.com/ || exit 1
-      
+
       - name: Run Playwright tests
         run: npx playwright test --project=${{ matrix.browser }}
         env:
           BROWSER: ${{ matrix.browser }}
           CI: true
-          
+
       - name: Performance threshold check
         if: always()
         run: |
@@ -120,7 +120,7 @@ jobs:
           else
             echo "⚠️ No test results found"
           fi
-          
+
       - name: Generate test summary
         if: always()
         run: |
@@ -128,7 +128,7 @@ jobs:
           echo "- **Browser**: ${{ matrix.browser }}" >> $GITHUB_STEP_SUMMARY
           echo "- **OS**: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Node.js**: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
-          
+
           # Check test results and determine status
           if [ -d "test-results" ] && [ "$(ls -A test-results 2>/dev/null)" ]; then
             # Check if there were any failures by looking for failure indicators
@@ -140,7 +140,7 @@ jobs:
           else
             echo "- **Status**: ⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
       - name: Upload test traces on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -150,7 +150,7 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 7
-          
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -160,7 +160,7 @@ jobs:
             test-results/
             playwright-report/
           retention-days: 30
-          
+
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && failure()
         uses: actions/github-script@v7
@@ -168,7 +168,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            
+
             // Check if test-results directory exists
             if (fs.existsSync('test-results')) {
               const comment = `## ❌ Test Results Failed\n\n` +
@@ -197,15 +197,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts/
-          
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        
+
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: artifacts/
-          
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
