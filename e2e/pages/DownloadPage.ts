@@ -9,7 +9,7 @@ export class DownloadPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.secureDownloaderHeading = this.page.getByRole('heading', { name: 'Secure File Downloader' });
-    this.testPdfLink = this.page.getByRole('link', { name: 'sample.pdf' });
+    this.testPdfLink = this.page.getByRole('link', { name: 'test-file.txt' });
   }
 
   /**
@@ -48,7 +48,7 @@ export class DownloadPage extends BasePage {
    */
   async verifyPdfDownload() {
     const download = await this.downloadTestPdf();
-    expect(download.suggestedFilename()).toBe('sample.pdf');
+    expect(download.suggestedFilename()).toBe('test-file.txt');
     return download;
   }
 
