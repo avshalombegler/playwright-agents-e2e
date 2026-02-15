@@ -20,17 +20,52 @@ jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v4
+    
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
+    
+    # Cache node_modules
+    - name: Cache node_modules
+      uses: actions/cache@v4
+      id: node-cache
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-modules-
+    
     - name: Install dependencies
+      if: steps.node-cache.outputs.cache-hit != 'true'
       run: npm ci
+    
+    # Playwright browser caching
+    - name: Get Playwright version
+      id: playwright-version
+      run: echo "version=$(npx playwright --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" >> $GITHUB_OUTPUT
+    
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      id: playwright-cache
+      with:
+        path: |
+          ~/.cache/ms-playwright
+          ~/Library/Caches/ms-playwright
+          ~\AppData\Local\ms-playwright
+        key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+    
     - name: Install Playwright Browsers
+      if: steps.playwright-cache.outputs.cache-hit != 'true'
       run: npx playwright install --with-deps
+    
     - name: Run Playwright tests
       run: npx playwright test
+    
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
