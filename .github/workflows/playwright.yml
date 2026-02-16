@@ -65,6 +65,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         browser: [chromium, firefox, webkit]
         node-version: [20]
+        # Test sharding for faster execution
+        shard: [1, 2, 3, 4]
         exclude:
           - os: windows-latest
             browser: webkit
@@ -108,10 +110,11 @@ jobs:
           curl -f https://the-internet.herokuapp.com/ || exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
         env:
           BROWSER: ${{ matrix.browser }}
           CI: true
+          SHARD: ${{ matrix.shard }}/4
 
       - name: Performance threshold check
         if: always()
@@ -130,8 +133,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          # Create a unique directory structure for this matrix combination
-          MATRIX_DIR="${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}"
+          # Create a unique directory structure for this matrix combination-shard${{ matrix.shard }}"
           mkdir -p "reports/$MATRIX_DIR"
 
           # Copy the Playwright report to the matrix-specific directory
@@ -144,6 +146,7 @@ jobs:
             "os": "${{ matrix.os }}",
             "browser": "${{ matrix.browser }}",
             "nodeVersion": "${{ matrix.node-version }}",
+            "shard": "${{ matrix.shard }}/4",
             "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
             "gitRef": "${{ github.ref }}",
             "runId": "${{ github.run_id }}"
@@ -155,7 +158,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}
+          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}-shard${{ matrix.shard }}
           path: reports/
           retention-days: 30
 

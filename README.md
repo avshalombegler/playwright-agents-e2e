@@ -20,36 +20,41 @@ This project provides thorough test coverage for various authentication mechanis
 ```plaintext
 playwright-agents-e2e/
 ├── e2e/
+│   ├── config/             # ⭐ Centralized test configuration
+│   │   └── testData.ts     # Test data and environment config
 │   ├── fixtures/           # Test fixtures for authentication and page objects
 │   │   ├── authFixtures.ts
 │   │   ├── pageFixtures.ts
 │   │   └── index.ts
 │   ├── pages/              # Page Object Model implementation
-│   │   ├── BasePage.ts     # Base page with common functionality
+│   │   ├── BasePage.ts     # Base page with common functionality & error handling
 │   │   ├── LoginPage.ts    # Form authentication page
 │   │   ├── BasicAuthPage.ts
 │   │   ├── DigestAuthPage.ts
 │   │   ├── SecurePage.ts
 │   │   └── ...
+│   ├── setup/              # ⭐ Global setup/teardown
+│   │   ├── globalSetup.ts  # Pre-test setup (clean screenshots)
+│   │   └── globalTeardown.ts  # Post-test cleanup (archive results)
 │   ├── tests/              # Test suite organization
 │   │   ├── seed.spec.ts    # Initial setup tests
 │   │   ├── basic-auth/     # HTTP Basic Authentication tests
 │   │   ├── digest-auth/    # Digest Authentication tests
-│   │   ├── form-authentication/ # Form-based login tests
+│   │   ├── form-authentication/ # Form-based login tests (with tags)
 │   │   ├── password-recovery/   # Password recovery flow tests
 │   │   ├── secure-download/     # File download security tests
 │   │   └── security/           # General security tests
 │   └── utils/              # Utility functions
-│       ├── authUtils.ts
-│       ├── downloadUtils.ts
+│       ├── errorHandler.ts # ⭐ Enhanced error handling
 │       ├── testHelpers.ts
-│       └── validationUtils.ts
+│       └── index.ts
 ├── specs/                  # Test planning documentation
 ├── .github/
 │   └── workflows/
-│       └── playwright.yml  # CI/CD pipeline
-├── playwright.config.ts    # Playwright configuration
-└── package.json
+│       └── playwright.yml  # ⭐ CI/CD pipeline with test sharding
+├── .env.example           # ⭐ Environment variables template
+├── playwright.config.ts   # ⭐ Enhanced with env support, tags, sharding
+└── package.json           # ⭐ Added test:smoke, test:ui, and more scripts
 ```
 
 ## 🚀 Getting Started
@@ -88,6 +93,59 @@ playwright-agents-e2e/
 
 ### Running Tests
 
+#### Quick Start Commands
+
+| Command                   | Description                          |
+| ------------------------- | ------------------------------------ |
+| `npm test`                | Run all tests                        |
+| `npm run test:headed`     | Run with visible browser             |
+| `npm run test:debug`      | Debug mode with Playwright Inspector |
+| `npm run test:ui`         | Launch Playwright UI mode            |
+| `npm run test:smoke`      | Run smoke tests only (@smoke tag)    |
+| `npm run test:regression` | Run full regression suite            |
+| `npm run test:auth`       | Run authentication-related tests     |
+| `npm run test:security`   | Run security testing scenarios       |
+| `npm run report`          | View latest test report              |
+
+#### Environment Configuration
+
+The project supports environment-based configuration through `.env` files:
+
+1. **Create your local environment file**:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Configure environment variables**:
+
+   ```bash
+   # .env file
+   BASE_URL=https://the-internet.herokuapp.com
+   TEST_USERNAME=tomsmith
+   TEST_PASSWORD=SuperSecretPassword!
+   BROWSER=chromium
+   HEADLESS=true
+   ```
+
+3. **Run tests with environment variables**:
+
+   ```bash
+   npm test  # Uses .env configuration
+   ```
+
+**Available Environment Variables**:
+
+- `BASE_URL` - Base URL of the application under test
+- `TEST_USERNAME` / `TEST_PASSWORD` - Default test credentials
+- `CI` - CI environment flag (auto-detected)
+- `BROWSER` - Browser to use (chromium, firefox, webkit)
+- `HEADLESS` - Run in headless mode (true/false)
+- `TIMEOUT` - Test timeout in milliseconds (default: 30000)
+- `WORKERS` - Number of parallel workers
+- `TEST_GREP` - Run tests matching this pattern (e.g., @smoke)
+- `TEST_GREP_INVERT` - Skip tests matching this pattern
+
 #### Development Scripts
 
 ```bash
@@ -111,8 +169,8 @@ npm run ci             # Run quality checks + tests
 
 #### Playwright Commands
 
-```bash
-# Run with UI mode
+````bash
+# Run with UI mode (interactive)
 npx playwright test --ui
 
 # Run specific test suites
@@ -120,11 +178,46 @@ npx playwright test e2e/tests/form-authentication/
 npx playwright test e2e/tests/basic-auth/
 npx playwright test e2e/tests/security/
 
+# Run tests with specific tags
+npx playwright test --grep @smoke     # Run smoke tests
+npx playwright test --grep @critical  # Run critical tests
+npx playwright test --grep "@smoke|@critical"  # Run either
+
 # Run in headed mode (visible browser)
 npx playwright test --headed
 
+# Run specific browser
+npx playwright test --project=chromium
+npx playwright test --project=firefox
+npx playwright test --project=webkit
+
+# Test sharding (parallel execution)
+npx playwright test --shard=1/4 # Run first quarter of tests
+npx playwright test --shard=2/4 # Run second quarter of tests
+
+# Debug specific test
+npx playwright test --debug path/to/test.spec.ts
+
 # Generate and view reports
 npx playwright show-report
+```
+
+### Test Tags
+
+Tests are organized using tags for selective execution:
+
+- **@smoke** - Critical path tests (runs on every PR)
+- **@regression** - Full regression suite
+- **@critical** - High-priority test scenarios
+- **@auth** - Authentication-related tests
+- **@security** - Security testing scenarios
+
+**Example Usage**:
+
+```bash
+npm run test:smoke      # Run smoke tests
+npm run test:auth       # Run auth tests
+npx playwright test --grep @critical  # Run critical tests
 ```
 
 ## 🧪 Test Coverage
@@ -164,7 +257,7 @@ npx playwright show-report
 code --install-extension ms-vscode.vscode-eslint
 code --install-extension esbenp.prettier-vscode
 code --install-extension ms-playwright.playwright
-```
+````
 
 ### Development Workflow
 
@@ -184,7 +277,7 @@ The project uses [playwright.config.ts](playwright.config.ts) with:
 - **Rich reporting**: HTML reports with trace collection
 - **CI optimization**: Enhanced for GitHub Actions
 
-### Environment Configuration
+### Runtime Configuration
 
 - **CI Detection**: Automatic optimization for CI environments
 - **Screenshots**: Captured on failure
@@ -206,8 +299,8 @@ Comprehensive GitHub Actions workflow with industry best practices:
 
 - **Multi-environment**: Ubuntu, Windows, macOS
 - **Multi-browser**: Chromium, Firefox, WebKit
-- **Multi-runtime**: Node.js 18, 20
-- **Smoke testing**: Staging environment validation
+- **Test sharding**: 4 parallel shards per browser for faster execution
+- **Matrix testing**: 3 OS × 3 browsers × 4 shards = 36 parallel jobs
 
 ### Automation Features
 
@@ -218,11 +311,39 @@ Comprehensive GitHub Actions workflow with industry best practices:
 
 ## 📋 Test Organization
 
-### Page Object Model
+### Test Tags and Annotations
 
-- **BasePage**: Common functionality across all pages
-- **Specialized Pages**: Login, Secure Area, Authentication-specific pages
-- **Consistent API**: Standardized interaction methods
+Tests can be organized using tags and annotations for better categorization:
+
+```typescript
+import { pageTest as test, expect } from '../../fixtures';
+
+test.describe('Authentication Feature', () => {
+  test(
+    'should handle valid login',
+    {
+      tag: ['@smoke', '@critical', '@auth'],
+      annotation: [
+        { type: 'issue', description: 'AUTH-001' },
+        { type: 'story', description: 'User login story' },
+      ],
+    },
+    async ({ loginPage, securePage }) => {
+      await test.step('Navigate to login', async () => {
+        await loginPage.navigateToLogin();
+      });
+
+      await test.step('Perform login', async () => {
+        await loginPage.loginWithValidCredentials();
+      });
+
+      await test.step('Verify success', async () => {
+        await securePage.verifySuccessMessage();
+      });
+    }
+  );
+});
+```
 
 ### Fixtures
 
@@ -267,6 +388,119 @@ test.describe('Authentication Feature', () => {
 3. Implement verification methods alongside actions
 4. Follow async/await patterns consistently
 
+## 🔧 Advanced Features
+
+### Test Data Management
+
+Centralized test data configuration via `e2e/config/testData.ts`:
+
+```typescript
+import { TestConfig, TestDataFactory } from './config/testData';
+
+// Use static configuration
+const credentials = TestConfig.credentials.valid;
+
+// Generate dynamic test data
+const email = TestDataFactory.generateEmail();
+const username = TestDataFactory.generateUsername();
+```
+
+### Enhanced Error Handling
+
+Automatic error context capture on test failures:
+
+- Full page screenshots
+- Console logs
+- Network activity
+- Browser storage state
+- Page state snapshots
+
+All error context is automatically attached to test reports.
+
+### Global Setup & Teardown
+
+- **Global Setup** (`e2e/setup/globalSetup.ts`): Cleans screenshots before test runs
+- **Global Teardown** (`e2e/setup/globalTeardown.ts`): Archives results, cleans temp files
+
+### Test Sharding for Performance
+
+Run tests in parallel shards for faster execution:
+
+```bash
+# Local sharding
+npx playwright test --shard=1/4
+npx playwright test --shard=2/4
+
+# CI automatically runs 4 shards per browser/OS combination
+```
+
+## 🐛 Troubleshooting
+
+### Common Issues & Solutions
+
+**Tests failing locally but passing in CI?**
+
+```bash
+# Clear Playwright cache
+npx playwright clean
+
+# Reinstall browsers
+npx playwright install --with-deps
+
+# Check environment variables
+cat .env  # Ensure .env matches .env.example
+```
+
+**Slow test execution?**
+
+```bash
+# Run tests in parallel
+npx playwright test --workers=4
+
+# Run specific suite instead of all tests
+npx playwright test e2e/tests/form-authentication
+
+# Use test sharding
+npx playwright test --shard=1/2
+```
+
+**Tests timing out?**
+
+```bash
+# Increase timeout in .env
+echo "TIMEOUT=60000" >> .env
+
+# Or run with increased timeout
+npx playwright test --timeout=60000
+```
+
+**Want to see what's happening?**
+
+```bash
+# Run in headed mode
+npm run test:headed
+
+# Use debug mode
+npm run test:debug
+
+# Use UI mode for interactive debugging
+npm run test:ui
+```
+
+**Environment variables not loading?**
+
+````bash
+# Ensure .env file exists
+cp .env.example .env
+
+# Verify dotenv is installed
+npm install
+
+# Check .env file format (no spaces around =)
+BASE_URL=https://example.com  # ✅ Correct
+BASE_URL = https://example.com  # ❌ Incorrect
+```
+
 ## 📊 Reporting & Monitoring
 
 ### Local Development
@@ -304,3 +538,4 @@ This project is licensed under the ISC License.
 ---
 
 **Note**: This test suite targets `https://the-internet.herokuapp.com/`, a deliberately vulnerable web application designed for testing security tools and learning security concepts. It should not be used for testing production applications without proper authorization.
+````

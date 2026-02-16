@@ -1,19 +1,29 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { expect, Locator, Page, TestInfo } from '@playwright/test';
+import { ErrorHandler } from '../utils/errorHandler';
 
 export abstract class BasePage {
   protected page: Page;
   protected baseUrl: string;
+  protected testInfo?: TestInfo;
 
-  constructor(page: Page) {
+  constructor(page: Page, testInfo?: TestInfo) {
     this.page = page;
-    this.baseUrl = 'https://the-internet.herokuapp.com';
+    this.baseUrl = process.env.BASE_URL || 'https://the-internet.herokuapp.com';
+    this.testInfo = testInfo;
   }
 
   /**
    * Navigate to the page
    */
   async goto(path: string = '') {
-    await this.page.goto(`${this.baseUrl}${path}`);
+    try {
+      await this.page.goto(`${this.baseUrl}${path}`);
+    } catch (error) {
+      if (this.testInfo) {
+        await ErrorHandler.captureErrorContext(this.page, this.testInfo, error as Error);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -76,8 +86,15 @@ export abstract class BasePage {
    * Navigate with authentication
    */
   async gotoWithAuth(path: string, username: string, password: string) {
-    const urlWithAuth = `https://${username}:${password}@the-internet.herokuapp.com${path}`;
-    await this.page.goto(urlWithAuth);
+    try {
+      const urlWithAuth = `https://${username}:${password}@the-internet.herokuapp.com${path}`;
+      await this.page.goto(urlWithAuth);
+    } catch (error) {
+      if (this.testInfo) {
+        await ErrorHandler.captureErrorContext(this.page, this.testInfo, error as Error);
+      }
+      throw error;
+    }
   }
 
   /**
