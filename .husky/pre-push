@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run smoke tests before push to catch critical issues
+# This runs fast tests tagged with @smoke
+npm run test:smoke -- --project=chromium || {
+  echo ""
+  echo "❌ Smoke tests failed! Fix the issues before pushing."
+  echo "   Run 'npm run test:smoke' to debug locally"
+  echo ""
+  exit 1
+}
+
+echo ""
+echo "✅ All pre-push checks passed!"
+echo ""

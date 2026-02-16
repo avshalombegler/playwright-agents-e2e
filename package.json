@@ -5,6 +5,14 @@
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:auth": "playwright test --grep @auth",
+    "test:security": "playwright test --grep @security",
+    "test:coverage": "playwright test --reporter=html,json",
     "lint": "eslint e2e/ --ext .ts,.js",
     "lint:fix": "eslint e2e/ --ext .ts,.js --fix",
     "format": "prettier --write \"e2e/**/*.{ts,js}\"",
@@ -12,8 +20,19 @@
     "type-check": "tsc --noEmit",
     "check": "npm run lint && npm run format:check && npm run type-check",
     "fix": "npm run lint:fix && npm run format && npm run type-check",
-    "pre-commit": "npm run fix",
-    "ci": "npm run check && npm run test"
+    "ci": "npm run check && npm run test",
+    "report": "playwright show-report",
+    "report:open": "playwright show-report --host localhost --port 9323",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "e2e/**/*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   },
   "keywords": [],
   "author": "",
@@ -25,6 +44,8 @@
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
     "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1"
   }
 }

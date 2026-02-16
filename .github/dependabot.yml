@@ -1,0 +1,72 @@
+version: 2
+updates:
+  # Enable npm dependency updates
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    open-pull-requests-limit: 10
+    reviewers:
+      - 'avshalombegler'
+    labels:
+      - 'dependencies'
+      - 'automated'
+    commit-message:
+      prefix: 'chore'
+      prefix-development: 'chore'
+      include: 'scope'
+
+    # Group updates for better management
+    groups:
+      # Group Playwright updates together
+      playwright:
+        patterns:
+          - '@playwright/*'
+          - 'playwright*'
+
+      # Group TypeScript/ESLint tooling
+      development-tools:
+        patterns:
+          - '@typescript-eslint/*'
+          - 'typescript'
+          - 'eslint*'
+          - 'prettier'
+
+      # Group testing utilities
+      testing:
+        patterns:
+          - '@types/*'
+          - 'husky'
+          - 'lint-staged'
+
+    # Ignore specific packages (if needed)
+    ignore:
+      # Example: ignore major version updates for stability
+      # - dependency-name: "@playwright/test"
+      #   update-types: ["version-update:semver-major"]
+
+    # Automatically rebase PRs when needed
+    rebase-strategy: 'auto'
+
+    # Allow both direct and indirect dependencies
+    versioning-strategy: increase
+
+  # Enable GitHub Actions workflow updates
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+    open-pull-requests-limit: 5
+    reviewers:
+      - 'avshalombegler'
+    labels:
+      - 'github-actions'
+      - 'dependencies'
+      - 'automated'
+    commit-message:
+      prefix: 'ci'
+      include: 'scope'
