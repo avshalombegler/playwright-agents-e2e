@@ -1,7 +1,7 @@
 import { pageTest as test, expect } from '../../fixtures';
 
 test.describe('Secure File Download', () => {
-  test('Secure Download with Authentication', async ({ downloadPage }) => {
+  test('Secure Download with Authentication @smoke', async ({ downloadPage }) => {
     await test.step('Navigate to secure download page with authentication', async () => {
       await downloadPage.navigateToSecureDownloadWithAuth();
     });

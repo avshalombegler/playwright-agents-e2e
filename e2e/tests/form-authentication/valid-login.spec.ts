@@ -1,7 +1,7 @@
 import { pageTest as test, expect } from '../../fixtures';
 
 test.describe('Form Authentication', () => {
-  test('Valid Login Flow', async ({ loginPage, securePage }) => {
+  test('Valid Login Flow @smoke', async ({ loginPage, securePage }) => {
     await test.step('Navigate to login page', async () => {
       await loginPage.navigateToLogin();
     });
