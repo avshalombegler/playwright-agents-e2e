@@ -35,18 +35,18 @@ function mergeShardReports(allReportsDir, mergedReportsDir) {
     console.log(`📊 Processing: ${comboName}`);
 
     try {
-      // Find all shard report directories for this combination
+      // Find all blob report directories for this combination
       const shardDirs = fs
         .readdirSync(allReportsDir)
         .filter(dir => {
-          const pattern = `playwright-report-${os}-${browser}-node20-shard`;
+          const pattern = `blob-report-${os}-${browser}-node20-shard`;
           return dir.startsWith(pattern);
         })
         .map(dir => path.join(allReportsDir, dir))
         .filter(dir => fs.statSync(dir).isDirectory());
 
       if (shardDirs.length === 0) {
-        console.log(`  ⚠️  No shard reports found for ${comboName}`);
+        console.log(`  ⚠️  No blob reports found for ${comboName}`);
         failureCount++;
         continue;
       }
@@ -54,15 +54,15 @@ function mergeShardReports(allReportsDir, mergedReportsDir) {
       console.log(`  📁 Found ${shardDirs.length} shard(s)`);
 
       // Create output directory for merged report
-      const mergedDir = path.join(mergedReportsDir, `${os}-${browser}-node20`);
+      const mergedDir = path.join(mergedReportsDir, `${os}-${browser}`);
       fs.mkdirSync(mergedDir, { recursive: true });
 
-      // Merge reports using Playwright's merge-reports command
-      const shardPaths = shardDirs.join(' ');
+      // Merge blob reports and generate HTML
+      const shardPaths = shardDirs.map(dir => `"${dir}"`).join(' ');
       console.log(`  🔀 Merging shards...`);
 
       execSync(`npx playwright merge-reports --reporter html ${shardPaths}`, {
-        stdio: 'pipe',
+        stdio: 'inherit',
         cwd: process.cwd(),
       });
 

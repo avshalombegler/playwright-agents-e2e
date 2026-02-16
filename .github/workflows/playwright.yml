@@ -110,7 +110,7 @@ jobs:
           curl -f https://the-internet.herokuapp.com/ || exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
+        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4 --reporter=blob
         env:
           BROWSER: ${{ matrix.browser }}
           CI: true
@@ -129,38 +129,12 @@ jobs:
             echo "⚠️ No test results found"
           fi
 
-      - name: Prepare report with matrix info
-        if: always()
-        shell: bash
-        run: |
-          # Create a unique directory structure for this matrix combination
-          MATRIX_DIR="${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}-shard${{ matrix.shard }}"
-          mkdir -p "reports/$MATRIX_DIR"
-
-          # Copy the Playwright report to the matrix-specific directory
-          if [ -d "playwright-report" ]; then
-            cp -r playwright-report/* "reports/$MATRIX_DIR/"
-            
-            # Create a metadata file for this matrix combination
-            cat > "reports/$MATRIX_DIR/matrix-info.json" << EOF
-          {
-            "os": "${{ matrix.os }}",
-            "browser": "${{ matrix.browser }}",
-            "nodeVersion": "${{ matrix.node-version }}",
-            "shard": "${{ matrix.shard }}/4",
-            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-            "gitRef": "${{ github.ref }}",
-            "runId": "${{ github.run_id }}"
-          }
-          EOF
-          fi
-
-      - name: Upload matrix-specific report
+      - name: Upload blob report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}-shard${{ matrix.shard }}
-          path: reports/
+          name: blob-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}-shard${{ matrix.shard }}
+          path: blob-report/
           retention-days: 30
 
   merge-reports:
@@ -175,14 +149,14 @@ jobs:
 
       - run: npm ci
 
-      - name: Download all shard reports
+      - name: Download all blob reports
         uses: actions/download-artifact@v4
         with:
-          pattern: playwright-report-*
-          path: all-reports/
+          pattern: blob-report-*
+          path: all-blob-reports/
 
       - name: Merge sharded reports by OS/browser
-        run: node .github/scripts/merge-shard-reports.cjs all-reports/ merged-reports/
+        run: node .github/scripts/merge-shard-reports.cjs all-blob-reports/ merged-reports/
 
       - name: Upload merged reports
         if: always()
