@@ -57,14 +57,33 @@ function mergeShardReports(allReportsDir, mergedReportsDir) {
       const mergedDir = path.join(mergedReportsDir, `${os}-${browser}`);
       fs.mkdirSync(mergedDir, { recursive: true });
 
-      // Merge blob reports and generate HTML
-      const shardPaths = shardDirs.map(dir => `"${dir}"`).join(' ');
-      console.log(`  🔀 Merging shards...`);
+      // Create a temporary directory to consolidate all shards
+      const tempCombinedDir = path.join(process.cwd(), 'temp-blob-reports', comboName);
+      fs.mkdirSync(tempCombinedDir, { recursive: true });
 
-      execSync(`npx playwright merge-reports --reporter html ${shardPaths}`, {
+      // Copy all shard blob reports into the temp directory
+      console.log(`  🔀 Consolidating ${shardDirs.length} shards...`);
+      for (const shardDir of shardDirs) {
+        const shardFiles = fs.readdirSync(shardDir);
+        for (const file of shardFiles) {
+          const src = path.join(shardDir, file);
+          const dest = path.join(tempCombinedDir, file);
+          // Skip if already exists (shouldn't happen, but just in case)
+          if (!fs.existsSync(dest)) {
+            fs.copyFileSync(src, dest);
+          }
+        }
+      }
+
+      // Merge blob reports and generate HTML
+      console.log(`  📊 Generating HTML report...`);
+      execSync(`npx playwright merge-reports --reporter html "${tempCombinedDir}"`, {
         stdio: 'inherit',
         cwd: process.cwd(),
       });
+
+      // Clean up temp directory
+      fs.rmSync(tempCombinedDir, { recursive: true, force: true });
 
       // Move merged report to output directory
       const tempReportDir = path.join(process.cwd(), 'playwright-report');
@@ -96,8 +115,21 @@ function mergeShardReports(allReportsDir, mergedReportsDir) {
       successCount++;
     } catch (error) {
       console.error(`  ❌ Failed to merge ${comboName}:`, error.message);
+
+      // Clean up temp directory on failure
+      const tempCombinedDir = path.join(process.cwd(), 'temp-blob-reports', comboName);
+      if (fs.existsSync(tempCombinedDir)) {
+        fs.rmSync(tempCombinedDir, { recursive: true, force: true });
+      }
+
       failureCount++;
     }
+  }
+
+  // Clean up temp directory
+  const tempParentDir = path.join(process.cwd(), 'temp-blob-reports');
+  if (fs.existsSync(tempParentDir)) {
+    fs.rmSync(tempParentDir, { recursive: true, force: true });
   }
 
   // Summary
