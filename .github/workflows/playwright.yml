@@ -65,6 +65,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         browser: [chromium, firefox, webkit]
         node-version: [20]
+        # Test sharding for faster execution
+        shard: [1, 2, 3, 4]
         exclude:
           - os: windows-latest
             browser: webkit
@@ -108,10 +110,11 @@ jobs:
           curl -f https://the-internet.herokuapp.com/ || exit 1
 
       - name: Run Playwright tests
-        run: npx playwright test --project=${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/4
         env:
           BROWSER: ${{ matrix.browser }}
           CI: true
+          SHARD: ${{ matrix.shard }}/4
 
       - name: Performance threshold check
         if: always()
@@ -130,8 +133,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          # Create a unique directory structure for this matrix combination
-          MATRIX_DIR="${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}"
+          # Create a unique directory structure for this matrix combination-shard${{ matrix.shard }}"
           mkdir -p "reports/$MATRIX_DIR"
 
           # Copy the Playwright report to the matrix-specific directory
@@ -144,6 +146,7 @@ jobs:
             "os": "${{ matrix.os }}",
             "browser": "${{ matrix.browser }}",
             "nodeVersion": "${{ matrix.node-version }}",
+            "shard": "${{ matrix.shard }}/4",
             "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
             "gitRef": "${{ github.ref }}",
             "runId": "${{ github.run_id }}"
@@ -155,13 +158,42 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}
+          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}-shard${{ matrix.shard }}
           path: reports/
+          retention-days: 30
+
+  merge-reports:
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Download all shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: all-reports/
+
+      - name: Merge sharded reports by OS/browser
+        run: node .github/scripts/merge-shard-reports.cjs all-reports/ merged-reports/
+
+      - name: Upload merged reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-merged
+          path: merged-reports/
           retention-days: 30
 
   deploy-report:
     if: always() && github.ref == 'refs/heads/main'
-    needs: test
+    needs: merge-reports
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -169,12 +201,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all test reports
+      - name: Download merged test reports
         uses: actions/download-artifact@v4
         with:
-          pattern: playwright-report-*
+          name: playwright-reports-merged
           path: all-reports/
-          merge-multiple: true
 
       - name: Create consolidated report structure
         run: |
