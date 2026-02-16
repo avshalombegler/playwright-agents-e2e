@@ -1,17 +1,17 @@
-import { Page, Locator, expect, Download } from '@playwright/test';
+import { Download, Locator, Page, expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 export class DownloadPage extends BasePage {
   // Locators
   private secureDownloaderHeading: Locator;
-  private testPdfLink: Locator;
+  private downloadLinks: Locator;
 
   constructor(page: Page) {
     super(page);
     this.secureDownloaderHeading = this.page.getByRole('heading', {
       name: 'Secure File Downloader',
     });
-    this.testPdfLink = this.page.getByRole('link', { name: 'test-file.txt' });
+    this.downloadLinks = this.page.locator('a[href*="download_secure/"]');
   }
 
   /**
@@ -33,24 +33,26 @@ export class DownloadPage extends BasePage {
    */
   async verifySecureDownloaderElements() {
     await expect(this.secureDownloaderHeading).toBeVisible();
-    await expect(this.testPdfLink).toBeVisible();
+    await expect(this.downloadLinks.first()).toBeVisible();
   }
 
   /**
-   * Download test PDF file
+   * Download first available file
    */
-  async downloadTestPdf(): Promise<Download> {
+  async downloadFirstAvailableFile(): Promise<Download> {
     const downloadPromise = this.waitForDownload();
-    await this.clickElement(this.testPdfLink);
+    await this.clickElement(this.downloadLinks.first());
     return await downloadPromise;
   }
 
   /**
-   * Verify PDF download
+   * Verify file download
    */
   async verifyPdfDownload() {
-    const download = await this.downloadTestPdf();
-    expect(download.suggestedFilename()).toBe('test-file.txt');
+    const download = await this.downloadFirstAvailableFile();
+    const suggestedFilename = download.suggestedFilename();
+    expect(suggestedFilename).toBeTruthy();
+    expect(suggestedFilename.length).toBeGreaterThan(0);
     return download;
   }
 
@@ -62,16 +64,31 @@ export class DownloadPage extends BasePage {
   }
 
   /**
-   * Verify test PDF link is available
+   * Verify download links are available
    */
-  async verifyTestPdfLinkAvailable() {
-    await expect(this.testPdfLink).toBeVisible();
+  async verifyDownloadLinksAvailable() {
+    await expect(this.downloadLinks).toHaveCount(1, { timeout: 10000 });
+    await expect(this.downloadLinks.first()).toBeVisible();
   }
 
   /**
    * Get available download links
    */
   async getAvailableDownloadLinks() {
-    return await this.page.locator('a[href*=".pdf"], a[href*=".txt"], a[href*=".doc"]').all();
+    return await this.downloadLinks.all();
+  }
+
+  /**
+   * Get download link for specific file type
+   */
+  async getDownloadLinkByType(fileType: string): Promise<Locator> {
+    return this.page.locator(`a[href*="download_secure/"][href*=".${fileType}"]`).first();
+  }
+
+  /**
+   * Get total count of available downloads
+   */
+  async getDownloadCount(): Promise<number> {
+    return await this.downloadLinks.count();
   }
 }

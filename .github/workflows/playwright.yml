@@ -149,9 +149,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-traces-${{ matrix.browser }}-${{ matrix.os }}-node${{ matrix.node-version }}
-          path: |
-            test-results/
-            playwright-report/
+          path: test-results/ # Only raw test data for debugging
           retention-days: 7
 
       - name: Upload test results
@@ -159,9 +157,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.browser }}-${{ matrix.os }}-node${{ matrix.node-version }}
-          path: |
-            test-results/
-            playwright-report/
+          path: playwright-report/ # Only the HTML report for Pages
           retention-days: 30
 
       - name: Comment PR with test results
