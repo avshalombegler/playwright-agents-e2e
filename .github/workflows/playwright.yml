@@ -218,6 +218,8 @@ jobs:
 
           const reportsDir = 'final-report';
           let reportCards = '';
+          let totalReports = 0;
+          let lastRunTime = null;
 
           if (fs.existsSync(reportsDir)) {
             const items = fs.readdirSync(reportsDir);
@@ -225,12 +227,22 @@ jobs:
             items.forEach(item => {
               const itemPath = path.join(reportsDir, item);
               if (fs.statSync(itemPath).isDirectory() && fs.existsSync(path.join(itemPath, 'index.html'))) {
+                totalReports++;
+                
                 // Try to read matrix info
                 let matrixInfo = {};
                 const metaPath = path.join(itemPath, 'matrix-info.json');
                 if (fs.existsSync(metaPath)) {
                   try {
                     matrixInfo = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                    
+                    // Track the latest run time
+                    if (matrixInfo.timestamp) {
+                      const runTime = new Date(matrixInfo.timestamp);
+                      if (!lastRunTime || runTime > lastRunTime) {
+                        lastRunTime = runTime;
+                      }
+                    }
                   } catch (e) {
                     console.log(`Could not parse matrix info for ${item}`);
                   }
@@ -253,7 +265,7 @@ jobs:
             });
           }
 
-          // Read the index.html and inject the report cards
+          // Read the index.html and inject the report cards AND stats
           const indexPath = path.join(reportsDir, 'index.html');
           let indexContent = fs.readFileSync(indexPath, 'utf8');
 
@@ -263,8 +275,27 @@ jobs:
             `<div class="report-grid" id="reportGrid">${reportCards}`
           );
 
+          // Update the stats values
+          indexContent = indexContent.replace(
+            '<span class="stat-value" id="totalReports">0</span>',
+            `<span class="stat-value" id="totalReports">${totalReports}</span>`
+          );
+
+          const lastRunDisplay = lastRunTime ? 
+            lastRunTime.toLocaleTimeString('en-US', { 
+              hour12: false, 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }) : '-';
+
+          indexContent = indexContent.replace(
+            '<span class="stat-value" id="lastRun">-</span>',
+            `<span class="stat-value" id="lastRun">${lastRunDisplay}</span>`
+          );
+
           fs.writeFileSync(indexPath, indexContent);
-          console.log(`Generated index with ${reportCards.split('report-card').length - 1} reports`);
+          console.log(`✅ Generated index with ${totalReports} reports`);
+          console.log(`📊 Stats: Total: ${totalReports}, Last Run: ${lastRunDisplay}`);
           SCRIPT
 
       - name: Setup Pages
