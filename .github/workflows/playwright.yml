@@ -63,22 +63,17 @@ jobs:
         os: [ubuntu-latest]
         browser: [chromium]
         node-version: [20]
-        # os: [ubuntu-latest]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
         # browser: [chromium, firefox, webkit]
         # node-version: [18, 20]
-        # include:
+        # exclude:
+        #   # Exclude incompatible combinations if needed
         #   - os: windows-latest
-        #     browser: chromium
-        #     node-version: 20
-        #   - os: macos-latest
         #     browser: webkit
-        #     node-version: 20
-
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -124,65 +119,37 @@ jobs:
             echo "⚠️ No test results found"
           fi
 
-      - name: Generate test summary
+      - name: Prepare report with matrix info
         if: always()
         run: |
-          echo "## Test Results 🧪" >> $GITHUB_STEP_SUMMARY
-          echo "- **Browser**: ${{ matrix.browser }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **OS**: ${{ matrix.os }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Node.js**: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          # Create a unique directory structure for this matrix combination
+          MATRIX_DIR="${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}"
+          mkdir -p "reports/$MATRIX_DIR"
 
-          # Check test results and determine status
-          if [ -d "test-results" ] && [ "$(ls -A test-results 2>/dev/null)" ]; then
-            # Check if there were any failures by looking for failure indicators
-            if find test-results -name "*.json" -exec grep -l '"status":"failed"\|"status":"timedOut"' {} \; | head -1 > /dev/null 2>&1; then
-              echo "- **Status**: ❌ Some tests failed" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "- **Status**: ✅ All tests passed" >> $GITHUB_STEP_SUMMARY
-            fi
-          else
-            echo "- **Status**: ⚠️ No test results found" >> $GITHUB_STEP_SUMMARY
+          # Copy the Playwright report to the matrix-specific directory
+          if [ -d "playwright-report" ]; then
+            cp -r playwright-report/* "reports/$MATRIX_DIR/"
+            
+            # Create a metadata file for this matrix combination
+            cat > "reports/$MATRIX_DIR/matrix-info.json" << EOF
+          {
+            "os": "${{ matrix.os }}",
+            "browser": "${{ matrix.browser }}",
+            "nodeVersion": "${{ matrix.node-version }}",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "gitRef": "${{ github.ref }}",
+            "runId": "${{ github.run_id }}"
+          }
+          EOF
           fi
 
-      - name: Upload test traces on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-traces-${{ matrix.browser }}-${{ matrix.os }}-node${{ matrix.node-version }}
-          path: test-results/ # Only raw test data for debugging
-          retention-days: 7
-
-      - name: Upload test results
+      - name: Upload matrix-specific report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.browser }}-${{ matrix.os }}-node${{ matrix.node-version }}
-          path: playwright-report/ # Only the HTML report for Pages
+          name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}
+          path: reports/
           retention-days: 30
-
-      - name: Comment PR with test results
-        if: github.event_name == 'pull_request' && failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-
-            // Check if test-results directory exists
-            if (fs.existsSync('test-results')) {
-              const comment = `## ❌ Test Results Failed\n\n` +
-                `**Browser:** ${{ matrix.browser }}\n` +
-                `**OS:** ${{ matrix.os }}\n` +
-                `**Node.js:** ${{ matrix.node-version }}\n\n` +
-                `Test execution failed. Please check the [full report](${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}) and download artifacts for detailed analysis.`;
-              
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-            }
 
   deploy-report:
     if: always() && github.ref == 'refs/heads/main'
@@ -192,11 +159,130 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Download test results
+      - uses: actions/checkout@v4
+
+      - name: Download all test reports
         uses: actions/download-artifact@v4
         with:
-          name: playwright-report
-          path: playwright-report/
+          pattern: playwright-report-*
+          path: all-reports/
+          merge-multiple: true
+
+      - name: Create consolidated report structure
+        run: |
+          mkdir -p final-report
+
+          # Copy all matrix reports to final structure
+          if [ -d "all-reports" ]; then
+            cp -r all-reports/* final-report/
+          fi
+
+      - name: Generate index page
+        run: |
+          cat > final-report/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Playwright Test Reports</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+                  .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                  h1 { color: #333; border-bottom: 3px solid #4CAF50; padding-bottom: 10px; }
+                  .report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
+                  .report-card { background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; padding: 20px; transition: transform 0.2s; }
+                  .report-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+                  .report-title { font-weight: bold; font-size: 1.1em; color: #2c5aa0; margin-bottom: 10px; }
+                  .report-meta { color: #666; font-size: 0.9em; margin-bottom: 15px; }
+                  .report-link { display: inline-block; background: #4CAF50; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; }
+                  .report-link:hover { background: #45a049; }
+                  .timestamp { font-size: 0.8em; color: #999; margin-top: 20px; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>🧪 Playwright E2E Test Reports</h1>
+                  <p>Test results from all browser and platform combinations:</p>
+                  <div class="report-grid" id="reportGrid">
+                  </div>
+                  <div class="timestamp">
+                      Generated: <span id="timestamp"></span> | 
+                      Repository: <a href="https://github.com/${{ github.repository }}" target="_blank">${{ github.repository }}</a> |
+                      Run: <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" target="_blank">#${{ github.run_id }}</a>
+                  </div>
+              </div>
+
+              <script>
+                  document.getElementById('timestamp').textContent = new Date().toLocaleString();
+                  
+                  // Dynamically discover available reports by checking for directories
+                  const reportGrid = document.getElementById('reportGrid');
+                  
+                  // This would be populated by scanning the directory structure
+                  // For now, we'll populate it via the build process
+              </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Populate index with available reports
+        run: |
+          # Create a script to populate the index with available reports
+          node << 'SCRIPT'
+          const fs = require('fs');
+          const path = require('path');
+
+          const reportsDir = 'final-report';
+          let reportCards = '';
+
+          if (fs.existsSync(reportsDir)) {
+            const items = fs.readdirSync(reportsDir);
+            
+            items.forEach(item => {
+              const itemPath = path.join(reportsDir, item);
+              if (fs.statSync(itemPath).isDirectory() && fs.existsSync(path.join(itemPath, 'index.html'))) {
+                // Try to read matrix info
+                let matrixInfo = {};
+                const metaPath = path.join(itemPath, 'matrix-info.json');
+                if (fs.existsSync(metaPath)) {
+                  try {
+                    matrixInfo = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                  } catch (e) {
+                    console.log(`Could not parse matrix info for ${item}`);
+                  }
+                }
+                
+                const displayName = matrixInfo.os && matrixInfo.browser ? 
+                  `${matrixInfo.os} - ${matrixInfo.browser} (Node ${matrixInfo.nodeVersion})` : 
+                  item;
+                
+                reportCards += `
+                  <div class="report-card">
+                    <div class="report-title">${displayName}</div>
+                    <div class="report-meta">
+                      ${matrixInfo.timestamp ? `Generated: ${new Date(matrixInfo.timestamp).toLocaleString()}` : ''}
+                    </div>
+                    <a href="${item}/index.html" class="report-link">View Report</a>
+                  </div>
+                `;
+              }
+            });
+          }
+
+          // Read the index.html and inject the report cards
+          const indexPath = path.join(reportsDir, 'index.html');
+          let indexContent = fs.readFileSync(indexPath, 'utf8');
+
+          // Replace the empty reportGrid with our generated cards
+          indexContent = indexContent.replace(
+            '<div class="report-grid" id="reportGrid">',
+            `<div class="report-grid" id="reportGrid">${reportCards}`
+          );
+
+          fs.writeFileSync(indexPath, indexContent);
+          console.log(`Generated index with ${reportCards.split('report-card').length - 1} reports`);
+          SCRIPT
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -204,7 +290,7 @@ jobs:
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: playwright-report/
+          path: final-report/
 
       - name: Deploy to GitHub Pages
         id: deployment
