@@ -23,7 +23,7 @@
     "ci": "npm run check && npm run test",
     "report": "playwright show-report",
     "report:open": "playwright show-report --host localhost --port 9323",
-    "prepare": "husky"
+    "postinstall": "is-ci || husky"
   },
   "lint-staged": {
     "e2e/**/*.{ts,js}": [
@@ -45,6 +45,7 @@
     "@typescript-eslint/parser": "^8.55.0",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",
+    "is-ci": "^3.0.1",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1"
   }

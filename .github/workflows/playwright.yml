@@ -43,7 +43,7 @@ jobs:
           cache: 'npm'
 
       - name: Validate package-lock.json
-        run: npm ci --dry-run
+        run: npm ci --ignore-scripts --dry-run
 
       - run: npm ci
 
