@@ -184,18 +184,19 @@ jobs:
               });
             }
 
-  deploy-reports:
+  deploy-report:
     if: always() && github.ref == 'refs/heads/main'
-    needs: [test]
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Download all artifacts
+      - name: Download test results
         uses: actions/download-artifact@v4
         with:
-          path: artifacts/
+          name: playwright-report
+          path: playwright-report/
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -203,7 +204,7 @@ jobs:
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: artifacts/
+          path: playwright-report/
 
       - name: Deploy to GitHub Pages
         id: deployment
