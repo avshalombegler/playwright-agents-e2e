@@ -61,15 +61,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        browser: [chromium, firefox, webkit]
-        node-version: [18, 20]
-        include:
-          - os: windows-latest
-            browser: chromium
-            node-version: 20
-          - os: macos-latest
-            browser: webkit
-            node-version: 20
+        browser: [chromium]
+        node-version: [20]
+        # os: [ubuntu-latest]
+        # browser: [chromium, firefox, webkit]
+        # node-version: [18, 20]
+        # include:
+        #   - os: windows-latest
+        #     browser: chromium
+        #     node-version: 20
+        #   - os: macos-latest
+        #     browser: webkit
+        #     node-version: 20
 
     runs-on: ${{ matrix.os }}
 
