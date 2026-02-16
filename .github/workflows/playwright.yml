@@ -162,9 +162,38 @@ jobs:
           path: reports/
           retention-days: 30
 
+  merge-reports:
+    if: always()
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Download all shard reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: all-reports/
+
+      - name: Merge sharded reports by OS/browser
+        run: node .github/scripts/merge-shard-reports.cjs all-reports/ merged-reports/
+
+      - name: Upload merged reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-reports-merged
+          path: merged-reports/
+          retention-days: 30
+
   deploy-report:
     if: always() && github.ref == 'refs/heads/main'
-    needs: test
+    needs: merge-reports
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -172,12 +201,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download all test reports
+      - name: Download merged test reports
         uses: actions/download-artifact@v4
         with:
-          pattern: playwright-report-*
+          name: playwright-reports-merged
           path: all-reports/
-          merge-multiple: true
 
       - name: Create consolidated report structure
         run: |
