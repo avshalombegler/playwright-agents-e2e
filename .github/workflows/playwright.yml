@@ -62,9 +62,9 @@ jobs:
       matrix:
         # os: [ubuntu-latest]
         # browser: [chromium]
-        # node-version: [20]
         os: [ubuntu-latest, windows-latest, macos-latest]
         browser: [chromium, firefox, webkit]
+        node-version: [20]
         exclude:
           - os: windows-latest
             browser: webkit
@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
 
       - name: Cache dependencies
         uses: actions/cache@v4
@@ -93,7 +93,15 @@ jobs:
             ~\AppData\Local\ms-playwright
           key: ${{ runner.os }}-playwright-${{ needs.setup.outputs.playwright-version }}
 
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Install Playwright browsers
+        run: |
+          # Skip system deps on Windows to speed up installation
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            npx playwright install ${{ matrix.browser }}
+          else
+            npx playwright install --with-deps ${{ matrix.browser }}
+          fi
+        shell: bash
 
       - name: Health check target application
         run: |
