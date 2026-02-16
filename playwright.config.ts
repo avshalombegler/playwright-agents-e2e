@@ -16,6 +16,9 @@ export default defineConfig({
   // Look for test files in the "./e2e/tests" directory, relative to this configuration file.
   testDir: './e2e/tests',
 
+  // Global setup to run before all tests
+  globalSetup: './e2e/setup/globalSetup.ts',
+
   // Run tests in files in parallel
   fullyParallel: true,
 
@@ -29,13 +32,13 @@ export default defineConfig({
   workers: process.env.CI ? 4 : undefined,
 
   // Multiple reporters for better CI reporting
-  reporter: process.env.CI 
+  reporter: process.env.CI
     ? [
         ['html', { open: 'never', outputFolder: 'playwright-report' }],
         ['json', { outputFile: 'test-results/results.json' }],
         ['junit', { outputFile: 'test-results/results.xml' }],
-        ['github']
-      ] 
+        ['github'],
+      ]
     : [['html', { open: 'on-failure', host: 'localhost', port: 9323 }]],
 
   // Shared settings for all the projects below
@@ -86,5 +89,4 @@ export default defineConfig({
     //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
     // },
   ],
-
 });
