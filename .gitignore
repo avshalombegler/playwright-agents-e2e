@@ -53,3 +53,5 @@ lerna-debug.log*
 # Coverage reports
 coverage/
 .nyc_output/
+
+implementation-docs/
