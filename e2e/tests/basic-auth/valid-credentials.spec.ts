@@ -1,4 +1,4 @@
-import { pageTest as test, expect } from '../../fixtures';
+import { pageTest as test } from '../../fixtures';
 
 test.describe('Basic Authentication', () => {
   test('Valid Basic Auth Credentials @smoke', async ({ basicAuthPage }) => {

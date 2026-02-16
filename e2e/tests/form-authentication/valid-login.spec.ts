@@ -1,4 +1,4 @@
-import { pageTest as test, expect } from '../../fixtures';
+import { pageTest as test } from '../../fixtures';
 
 test.describe('Form Authentication', () => {
   test('Valid Login Flow @smoke', async ({ loginPage, securePage }) => {

@@ -1,4 +1,4 @@
-import { pageTest as test, expect } from '../../fixtures';
+import { pageTest as test } from '../../fixtures';
 
 test.describe('Secure File Download', () => {
   test('Secure Download with Authentication @smoke', async ({ downloadPage }) => {

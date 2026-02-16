@@ -1,4 +1,4 @@
-import { pageTest as test, expect } from '../../fixtures';
+import { pageTest as test } from '../../fixtures';
 
 test.describe('Digest Authentication', () => {
   test('Valid Digest Auth Credentials @smoke', async ({ digestAuthPage }) => {
