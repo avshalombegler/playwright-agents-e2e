@@ -60,16 +60,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        browser: [chromium]
-        node-version: [20]
-        # os: [ubuntu-latest, windows-latest, macos-latest]
-        # browser: [chromium, firefox, webkit]
-        # node-version: [18, 20]
-        # exclude:
-        #   # Exclude incompatible combinations if needed
-        #   - os: windows-latest
-        #     browser: webkit
+        # os: [ubuntu-latest]
+        # browser: [chromium]
+        # node-version: [20]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        browser: [chromium, firefox, webkit]
+        node-version: [18, 20]
+        exclude:
+          # Exclude incompatible combinations if needed
+          - os: windows-latest
+            browser: webkit
     runs-on: ${{ matrix.os }}
 
     steps:
