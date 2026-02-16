@@ -210,7 +210,7 @@ jobs:
           SCRIPT
 
       - name: Populate index with available reports
-        run: node .github/scripts/populate-reports.js final-report
+        run: node .github/scripts/populate-reports.cjs final-report
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
