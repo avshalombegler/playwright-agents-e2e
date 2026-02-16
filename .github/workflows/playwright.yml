@@ -133,7 +133,8 @@ jobs:
         if: always()
         shell: bash
         run: |
-          # Create a unique directory structure for this matrix combination-shard${{ matrix.shard }}"
+          # Create a unique directory structure for this matrix combination
+          MATRIX_DIR="${{ matrix.os }}-${{ matrix.browser }}-node${{ matrix.node-version }}-shard${{ matrix.shard }}"
           mkdir -p "reports/$MATRIX_DIR"
 
           # Copy the Playwright report to the matrix-specific directory
